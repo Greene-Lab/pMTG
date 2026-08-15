@@ -38,8 +38,8 @@ Sex, scanner site, and handedness (`ehi1b`) are treated as categorical variables
 
 For brain-behavior analyses:
 
-- `brain_behavior_without_inr_residualization.ipynb` merges no-SES cognitive EFA factors, residualizes FC for the standard covariates, and tests FC associations with the EFA factors. It also compares KMeans subtype groups on the individual task scores residualized for age, sex, site, and handedness.
-- `brain_behavior_with_inr_residualization.ipynb` adds observed INR (`inr`) to the FC residualization covariate set and merges SES-residualized cognitive EFA factors. It also compares KMeans subtype groups on the individual task scores residualized for age, sex, site, handedness, and INR; raw INR remains available for descriptive subtype comparisons.
+- `brain_behavior_without_inr_residualization.ipynb` merges no-SES cognitive EFA factors, residualizes FC for the standard covariates, and tests FC associations with the EFA factors. It also compares KMeans subtype groups on the individual task scores used by `PCA_tasks.ipynb`, including Flanker, residualized for age, sex, site, and handedness.
+- `brain_behavior_with_inr_residualization.ipynb` adds observed INR (`inr`) to the FC residualization covariate set and merges SES-residualized cognitive EFA factors. It also compares KMeans subtype groups on the individual task scores used by `PCA_tasks.ipynb`, including Flanker, residualized for age, sex, site, handedness, and INR; raw INR remains available for descriptive subtype comparisons.
 - `clustering.ipynb` recomputes FC residuals from raw FC columns using the standard covariates and adds observed INR when `RESIDUALIZE_FC_FOR_INR = True`.
 
 `calculate_income_to_needs` keeps observed INR in `inr` and records missingness in `inr_missing`. SES-residualized FC and behavioral models use observed `inr`; participants missing any required residualization inputs keep `NaN` FC residuals instead of receiving filled covariates.
