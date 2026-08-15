@@ -34,7 +34,6 @@ subject_dirs = glob(os.path.join(base_dir, "sub-*"))
 cluster_output_path = '/labs/greene-lab/lab_members/emily/mtg/maps/Variants_Density_cPFM_not06not11not13_185avrg_thresholded_clusters.dtseries.nii'
 mtg_output_path = '/labs/greene-lab/lab_members/emily/mtg/maps/pMTG_regions.dtseries.nii'
 
-# Step 1: Run cifti-find-clusters on the dtseries with 4 as the threshold and 10 vertices as the minimum cluster size
 try:
     subprocess.run([
         workbench,
