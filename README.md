@@ -17,9 +17,7 @@ This repository contains notebooks and helper code for analyzing posterior middl
 - `PCA_tasks.ipynb`: Cognitive-task dimensionality-reduction notebook. It runs matched no-SES and SES-residualized PCA and exploratory factor analysis (EFA) workflows, displays cognitive residual normality diagnostics with histograms and Q-Q plots, and exports cognitive PCA/EFA scores and parameter tables.
 - `PCA_FC.ipynb`: Functional-connectivity PCA notebook. It loads the cognitive EFA factor-score exports from `PCA_tasks.ipynb`, runs matched no-SES and SES-residualized FC PCA workflows, exports the fitted FC-PCA scores and variance tables for downstream clustering visualization, displays FC residual normality diagnostics with paginated histograms and Q-Q plots, and computes cognitive-EFA-factor-by-FC association tables.
 - `clustering.ipynb`, `figures.ipynb`: Downstream subtype and visualization notebooks.
-- `analysis_utils.py`: Tested helper functions shared across notebooks.
 - `variant_spatial_validation_results/`: Generated CSV summaries, figures, and CIFTI maps from the Workbench-based pMTG spatial validation analyses.
-- `tests/`: Pytest tests for reusable helpers and notebook code-cell syntax.
 
 ## Workflow
 
@@ -51,25 +49,11 @@ For brain-behavior analyses:
 
 `calculate_income_to_needs` keeps observed INR in `inr` and records missingness in `inr_missing`. SES-residualized FC and behavioral models use observed `inr`; participants missing any required residualization inputs keep `NaN` FC residuals instead of receiving filled covariates.
 
-## Tests
+## Notebook Organization
 
-Install test dependencies, then run:
+The active analyses are written as step-by-step research notebooks. Small functions are kept inside the notebook where they are used, primarily when an operation is repeated many times (for example, FC residualization or fitting a bootstrap clustering solution). Data loading, output writing, summaries, and validation metrics are shown directly in the analysis flow rather than hidden behind utility modules.
 
-```bash
-python3 -m pytest
-```
-
-The tests cover:
-
-- Motion QA loading and subject-ID normalization.
-- Inclusion of `mean_fd_0.20` in the standard FC covariates.
-- RAVLT summary-score preprocessing.
-- INR calculation.
-- FC and behavioral residualization helpers.
-- Correlation and multiple-comparison helpers.
-- Pairwise Rand score and bootstrap cluster-recovery helpers.
-- Python syntax validity for modified notebook code cells.
-- Notebook checks confirming the active brain-behavior, vertexwise, clustering, and FC PCA workflows use the intended EFA scores, FC columns, and covariate requirements.
+The clustering notebooks present validation in four explicit stages: repeated-run Rand Index, bootstrap setup, 5,000 with-replacement bootstrap fits, and cluster-wise Jaccard summaries.
 
 ## Path Configuration
 
@@ -80,7 +64,7 @@ The notebooks currently use absolute local paths for ABCD data, FC profile CSVs,
 - `motion_QA_results.csv` contains `src_subject_id` and `mean_fd_0.20`.
 - Subject IDs may appear with underscores or a `sub-` prefix; helper functions normalize these before merging.
 - INR covariate control means adding observed INR to the same residualization model as the other FC covariates and using the matched SES-residualized cognitive EFA scores from `PCA_tasks.ipynb`.
-- Private ABCD source files are not included in this repository, so tests focus on reusable logic and notebook structure rather than full notebook execution.
+- Private ABCD source files and generated analysis outputs are not included in this repository.
 - The reported cPFM cohort comprises `MSCPI05`, `MSCPI07`, `MSCPI08`, `MSCPI10`, `MSCPI12`, `MSCPI14`, `MSCPI15`, `MSCPI17`, `MSCPI18`, and `MSCPI19`; participants `MSCPI14`, `MSCPI15`, and `MSCPI18` form the neurodevelopmental-diagnosis group.
 - Variant spatial validation starts from unthresholded participant-level `*spatialCorrMap.dtseries.nii` maps in the local `Variants` folder.
 - Connectome Workbench is expected at `/Applications/workbench/bin_macosx64/wb_command`, with HCP1200 32k midthickness surfaces available at the paths configured in `variants.ipynb`.
