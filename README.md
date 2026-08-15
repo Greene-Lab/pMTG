@@ -5,25 +5,21 @@ This repository contains notebooks and helper code for analyzing posterior middl
 ## Repository Contents
 
 - `calculating_fc.py`: Generates subject-level pMTG-to-network functional connectivity profiles from CIFTI time series.
-- `calculating_vertexwise_fc.py`: Generates subject-level FC from every pMTG vertex to every network; columns retain the zero-based Python dense index and hemisphere (for example, `DMN_full_12345_L_fz`).
 - `data_wrangling.ipynb`: Merges ABCD demographic, behavioral, imaging QA, motion QA, and pMTG FC data; filters the sample; residualizes FC profiles; and saves the analysis table.
 - `brain_behavior_without_inr_residualization.ipynb`: Explicit no-INR-covariate brain-behavior notebook; it uses the no-SES cognitive EFA factor scores.
 - `brain_behavior_with_inr_residualization.ipynb`: Brain-behavior notebook that controls FC for income-to-needs ratio (INR); it uses the SES-residualized cognitive EFA factor scores.
-- `vertexwise_brain_behavior_without_ses_residualization.ipynb`: Vertex-wise pMTG brain-behavior correlations using no-SES cognitive EFA factor scores.
-- `vertexwise_brain_behavior_with_ses_residualization.ipynb`: Vertex-wise pMTG brain-behavior correlations after controlling FC for SES and using SES-residualized cognitive EFA factor scores.
-- `clustering_without_inr_residualization.ipynb`: Clustering notebook that residualizes FC for the standard covariates, including motion, before subtype analyses; it assesses K-Means and Louvain stability with 5,000 with-replacement subject bootstraps, summarizes agreement across 1,001 runs, and plots two- and four-cluster solutions using the saved no-SES FC-PCA scores.
-- `clustering_with_inr_residualization.ipynb`: Clustering notebook that residualizes FC for the standard covariates plus INR before subtype analyses; it runs the matched stability analyses and plots solutions using the saved SES-residualized FC-PCA scores.
+- `clustering.ipynb`: One parameterized clustering notebook. `RESIDUALIZE_FC_FOR_INR` selects standard-covariate or standard-plus-INR FC residualization without duplicating the analysis. It assesses K-Means and Louvain stability with 5,000 with-replacement subject bootstraps, summarizes agreement across 1,001 runs, and plots two- and four-cluster solutions using the matching saved FC-PCA scores.
 - `variants.ipynb`: Self-contained Workbench workflow for pMTG spatial validation. It thresholds unthresholded subject spatial-correlation maps at the bottom 5%, 10%, and 15%, clusters subject and group maps at 30 mm2, identifies group pMTG parcels, and reports Dice coefficient overlap for threshold, diagnosis-exclusion, and 10% jackknife analyses.
 - `PCA_tasks.ipynb`: Cognitive-task dimensionality-reduction notebook. It runs matched no-SES and SES-residualized PCA and exploratory factor analysis (EFA) workflows, displays cognitive residual normality diagnostics with histograms and Q-Q plots, and exports cognitive PCA/EFA scores and parameter tables.
 - `PCA_FC.ipynb`: Functional-connectivity PCA notebook. It loads the cognitive EFA factor-score exports from `PCA_tasks.ipynb`, runs matched no-SES and SES-residualized FC PCA workflows, exports the fitted FC-PCA scores and variance tables for downstream clustering visualization, displays FC residual normality diagnostics with paginated histograms and Q-Q plots, and computes cognitive-EFA-factor-by-FC association tables.
-- `clustering.ipynb`, `figures.ipynb`: Downstream subtype and visualization notebooks.
+- `figures.ipynb`: Downstream subtype visualization notebook.
 - `variant_spatial_validation_results/`: Generated CSV summaries, figures, and CIFTI maps from the Workbench-based pMTG spatial validation analyses.
 
 ## Workflow
 
 1. `calculating_fc.py` identifies pMTG vertices, extracts network time courses, computes Fisher-z transformed pMTG-to-network FC profiles, and writes the subject-level FC CSV.
 2. `data_wrangling.ipynb` loads ABCD behavioral/demographic data, merges FC profiles, merges `mean_fd_0.20` from `motion_QA_results.csv`, filters rsfMRI QA exclusions, selects one participant per family, residualizes FC profiles, removes extreme FC outliers, and exports the final wrangled CSV.
-3. `PCA_FC.ipynb` exports matched FC-PCA coordinates, and the clustering notebooks use those fixed coordinates to visualize subtype solutions. Clustering stability is evaluated with cluster-wise Jaccard recovery across 5,000 with-replacement subject bootstraps; Rand Index is reported separately across repeated full-sample runs and between final algorithms. `PCA_tasks.ipynb` exports cognitive EFA factor scores used in FC PCA and brain-behavior analyses.
+3. `PCA_FC.ipynb` exports matched FC-PCA coordinates, and the parameterized clustering notebook uses those fixed coordinates to visualize subtype solutions. Clustering stability is evaluated with cluster-wise Jaccard recovery across 5,000 with-replacement subject bootstraps; Rand Index is reported separately across repeated full-sample runs and between final algorithms. `PCA_tasks.ipynb` exports cognitive EFA factor scores used in FC PCA and brain-behavior analyses.
 4. The brain-behavior notebooks compute INR, residualize FC as configured, keep non-task subtype comparisons, correlate FC with cognitive EFA factors, FDR-correct the cognitive factor tests, plot significant effects, and test mediation models where appropriate.
 5. `variants.ipynb` derives subject variant maps from the unthresholded spatial-correlation CIFTIs, applies Workbench component filtering, clusters group consensus maps, exports candidate pMTG labels for manual confirmation, and quantifies pMTG spatial overlap with Dice coefficient.
 
@@ -44,8 +40,7 @@ For brain-behavior analyses:
 
 - `brain_behavior_without_inr_residualization.ipynb` merges no-SES cognitive EFA factors, residualizes FC for the standard covariates, and tests FC associations with the EFA factors. It also compares KMeans subtype groups on the individual task scores residualized for age, sex, site, and handedness.
 - `brain_behavior_with_inr_residualization.ipynb` adds observed INR (`inr`) to the FC residualization covariate set and merges SES-residualized cognitive EFA factors. It also compares KMeans subtype groups on the individual task scores residualized for age, sex, site, handedness, and INR; raw INR remains available for descriptive subtype comparisons.
-- `clustering_without_inr_residualization.ipynb` recomputes FC residuals from raw FC columns using standard covariates only.
-- `clustering_with_inr_residualization.ipynb` recomputes FC residuals from raw FC columns using standard covariates plus observed INR.
+- `clustering.ipynb` recomputes FC residuals from raw FC columns using the standard covariates and adds observed INR when `RESIDUALIZE_FC_FOR_INR = True`.
 
 `calculate_income_to_needs` keeps observed INR in `inr` and records missingness in `inr_missing`. SES-residualized FC and behavioral models use observed `inr`; participants missing any required residualization inputs keep `NaN` FC residuals instead of receiving filled covariates.
 
@@ -53,7 +48,7 @@ For brain-behavior analyses:
 
 The active analyses are written as step-by-step research notebooks. Small functions are kept inside the notebook where they are used, primarily when an operation is repeated many times (for example, FC residualization or fitting a bootstrap clustering solution). Data loading, output writing, summaries, and validation metrics are shown directly in the analysis flow rather than hidden behind utility modules.
 
-The clustering notebooks present validation in four explicit stages: repeated-run Rand Index, bootstrap setup, 5,000 with-replacement bootstrap fits, and cluster-wise Jaccard summaries.
+The clustering notebook presents validation in four explicit stages: repeated-run Rand Index, bootstrap setup, 5,000 with-replacement bootstrap fits, and cluster-wise Jaccard summaries.
 
 ## Path Configuration
 
