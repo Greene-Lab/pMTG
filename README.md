@@ -1,4 +1,4 @@
-# pMTG Functional Connectivity and Brain–Behavior Analyses
+# pMTG Functional Connectivity and Brain-Behavior Analyses
 
 This repository contains the analysis code for characterizing posterior middle temporal gyrus (pMTG) functional connectivity, identifying connectivity-based subtypes, and testing relationships with cognition and socioeconomic status in early adolescence.
 
