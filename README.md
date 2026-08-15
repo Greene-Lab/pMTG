@@ -50,6 +50,8 @@ The active analyses are written as step-by-step research notebooks. Small functi
 
 The clustering notebook presents validation in four explicit stages: repeated-run Rand Index, bootstrap setup, 5,000 with-replacement bootstrap fits, and cluster-wise Jaccard summaries.
 
+Every clustering CSV filename includes either `with_inr_residualization` or `without_inr_residualization`; motion is not included in the output label.
+
 ## Path Configuration
 
 The notebooks currently use absolute local paths for ABCD data, FC profile CSVs, and output files. Update the path variables near the top of each notebook before running on another machine.
