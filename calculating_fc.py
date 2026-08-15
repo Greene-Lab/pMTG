@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""Compute pMTG-to-network functional connectivity profiles.
+
+This script uses Connectome Workbench to identify pMTG variant clusters,
+builds left and right pMTG masks, extracts each subject's smoothed CIFTI time
+series, and saves Fisher-z transformed FC profiles to a CSV file.
+"""
 
 import nibabel as nib
 import numpy as np
@@ -8,23 +14,23 @@ from glob import glob
 import subprocess
 from nilearn import datasets, image
 
-# Path to Workbench
+# Path to the Connectome Workbench command-line binary used for CIFTI commands.
 workbench = '/labs/greene-lab/Shared_Tools/workbench/bin_linux64/wb_command'
 
-# Surface files to use in workbench commands
+# Surface files required by Workbench when finding clusters on CIFTI data.
 surface_files = {
     'Left': '/labs/greene-lab/lab_members/emily/mtg/surfaces/HCP1200/S1200.L.midthickness_MSMAll.32k_fs_LR.surf.gii',
     'Right': '/labs/greene-lab/lab_members/emily/mtg/surfaces/HCP1200/S1200.R.midthickness_MSMAll.32k_fs_LR.surf.gii'
 }
 
-# Input paths
+# Input maps, motion summary file, and subject-level derivative directory.
 density_path = '/labs/greene-lab/lab_members/emily/mtg/maps/Variants_Density_cPFM_not06not11not13_185avrg.dtseries.nii'
 avg_path = '/labs/greene-lab/lab_members/emily/mtg/maps/abcd_template_matching_combined_clusters_thresh0.61.dlabel.nii'
 motion_path = '/labs/greene-lab/lab_members/emily/mtg/data/motion_data_summary.csv'
 base_dir = '/labs/greene-lab/ABCD/derivatives/GL_Smoothing/'
 subject_dirs = glob(os.path.join(base_dir, "sub-*"))
 
-# Output paths
+# Output maps for the thresholded variant clusters and pMTG masks.
 cluster_output_path = '/labs/greene-lab/lab_members/emily/mtg/maps/Variants_Density_cPFM_not06not11not13_185avrg_thresholded_clusters.dtseries.nii'
 mtg_output_path = '/labs/greene-lab/lab_members/emily/mtg/maps/pMTG_regions.dtseries.nii'
 
@@ -49,7 +55,7 @@ except subprocess.CalledProcessError as e:
     print(e)
     exit(1)
 
-# Step 2: Extract MTG indices (clusters 2 and 7 in the output) 
+# Step 2: Extract MTG indices from clusters 2 and 7 in the Workbench output.
 clusters_img = nib.load(cluster_output_path)
 clusters = clusters_img.get_fdata()
 mtg_left_list = np.where(clusters[0, :] == 2)[0]
@@ -58,6 +64,8 @@ mtg_right_list = np.where(clusters[0, :] == 7)[0]
 print("Right MTG indices:", mtg_right_list)
 mtg_list = np.concatenate((mtg_left_list, mtg_right_list))
 print("Combined MTG indices:", mtg_list)
+
+# Save a two-label pMTG mask so the extracted regions can be inspected later.
 mtg_data = np.zeros(clusters.shape[1])
 mtg_data[mtg_left_list] = 1
 mtg_data[mtg_right_list] = 2
@@ -114,7 +122,9 @@ network_labels = {'DMN_left': [1, 16, 18, 28, 30, 73, 74],
                   'DAN_full': [14, 15, 25, 46, 47, 56, 70, 72, 83, 85], 
                   'VAN_full': [19, 22, 50, 52]}
 print('Defined network labels and their numeric labels.')
-# find vertices in each network
+
+# Convert each network's numeric labels into vertex indices and exclude pMTG
+# vertices so pMTG-to-network FC does not correlate a region with itself.
 network_indices = {}
 for network, labels in network_labels.items():
     indices = np.where(np.isin(avg_data, labels))[0]
@@ -125,7 +135,8 @@ for network, labels in network_labels.items():
 print('Network indices computed.')
 
 
-# Step 4: Average pMTG timecourses for each hemisphere, then compute 30-dimensional vector representing concatenated FC profiles to each large-scale network for the participant
+# Step 4: Average each network time course, correlate it with every pMTG vertex,
+# and then average Fisher-z transformed FC values within each pMTG hemisphere.
 motion = pd.read_csv(motion_path)
 eligible_subjects = motion.loc[motion['good_frames'] >= 600, 'src_subject_id'].tolist()
 print('Number of eligible subjects:', len(eligible_subjects))
@@ -133,10 +144,14 @@ results = []
 
 for subject_path in subject_dirs:
     subject_id = os.path.basename(subject_path)
+
+    # Skip subjects with too few usable frames according to the motion summary.
     if subject_id not in eligible_subjects:
         continue
 
     smoothed_dir = os.path.join(subject_path, "ses-2YearFollowUpYArm1", "Smoothed")
+
+    # Skip subjects whose expected smoothed time-series directory or file is absent.
     if not os.path.isdir(smoothed_dir):
         continue
 
@@ -147,12 +162,12 @@ for subject_path in subject_dirs:
     dt_path = os.path.join(smoothed_dir, dt_files[0])
 
     try:
-        # Load data
+        # Load the subject's time-by-vertex CIFTI matrix.
         dt = nib.load(dt_path).get_fdata() 
 
         subject_result = {'subject_id': subject_id}
         for network in network_labels.keys():
-            # Left pMTG
+            # Correlate each left pMTG vertex time course with the network mean.
             left_network_fcs = []
             left_mtg_indices = mtg_left_list
             left_mtg_timecourses = dt[:, left_mtg_indices]
@@ -163,7 +178,7 @@ for subject_path in subject_dirs:
                 fz_fc = np.arctanh(fc)  # Fisher z-transform
                 left_network_fcs.append(fz_fc)
 
-            # Right pMTG
+            # Repeat the same FC calculation for right pMTG vertices.
             right_network_fcs = []
             right_mtg_indices = mtg_right_list
             right_mtg_timecourses = dt[:, right_mtg_indices]
@@ -185,7 +200,6 @@ for subject_path in subject_dirs:
 results_df = pd.DataFrame(results)
 results_df.to_csv("/labs/greene-lab/lab_members/emily/mtg/data/pMTG_FC_profiles_midb61_meanFC.csv", index=False)
 print("Saved FC profiles to CSV.")
-
 
 
 
