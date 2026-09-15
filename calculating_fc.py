@@ -17,13 +17,13 @@ from nilearn import datasets, image
 # Path to the Connectome Workbench command-line binary used for CIFTI commands.
 workbench = '/labs/greene-lab/Shared_Tools/workbench/bin_linux64/wb_command'
 
-# Surface files required by Workbench when finding clusters on CIFTI data.
+# Surface files for finding clusters on CIFTI data.
 surface_files = {
     'Left': '/labs/greene-lab/lab_members/emily/mtg/surfaces/HCP1200/S1200.L.midthickness_MSMAll.32k_fs_LR.surf.gii',
     'Right': '/labs/greene-lab/lab_members/emily/mtg/surfaces/HCP1200/S1200.R.midthickness_MSMAll.32k_fs_LR.surf.gii'
 }
 
-# Input maps, motion summary file, and subject-level derivative directory.
+# Input variant density and network maps, motion summary file, and subject-level derivative directory.
 density_path = '/labs/greene-lab/lab_members/emily/mtg/maps/Variants_Density_cPFM_not06not11not13_185avrg.dtseries.nii'
 avg_path = '/labs/greene-lab/lab_members/emily/mtg/maps/abcd_template_matching_combined_clusters_thresh0.61.dlabel.nii'
 motion_path = '/labs/greene-lab/lab_members/emily/mtg/data/motion_data_summary.csv'
@@ -39,8 +39,8 @@ try:
         workbench,
         '-cifti-find-clusters',
         density_path,
-        '4',
-        '40',
+        '4', # threshold for cluster detection (requires > 4 subjects with variant at location)
+        '40', # minimum cluster size
         '0',
         '0',
         'COLUMN',
@@ -54,7 +54,7 @@ except subprocess.CalledProcessError as e:
     print(e)
     exit(1)
 
-# Step 2: Extract MTG indices from clusters 2 and 7 in the Workbench output.
+# Step 2: Extract MTG indices from clusters 2 and 7 (corresponding to pMTG regions) in the Workbench output.
 clusters_img = nib.load(cluster_output_path)
 clusters = clusters_img.get_fdata()
 mtg_left_list = np.where(clusters[0, :] == 2)[0]
@@ -78,6 +78,8 @@ avg_data = avg_img.get_fdata().squeeze()
 
 print('Shape of group average:', avg_data.shape)
 print('Unique numeric labels in average map:', np.unique(avg_data))
+# Define network labels and their corresponding numeric labels from the MIDB probabilistic network template
+# Only cortical regions are included, and pMTG vertices are excluded from the network masks to avoid self-correlation
 network_labels = {'DMN_left': [1, 16, 18, 28, 30, 73, 74], 
                   'DMN_right': [33, 49, 58, 60, 62, 81, 84], 
                   'SMl_left': [2, 79, 96, 104], 
@@ -122,8 +124,8 @@ network_labels = {'DMN_left': [1, 16, 18, 28, 30, 73, 74],
                   'VAN_full': [19, 22, 50, 52]}
 print('Defined network labels and their numeric labels.')
 
-# Convert each network's numeric labels into vertex indices and exclude pMTG
-# vertices so pMTG-to-network FC does not correlate a region with itself.
+# Convert each network's numeric labels into vertex indices and exclude pMTG vertices if there is any overlap
+# Overlap should only be a few right pMTG vertices bordering the temporal VAN region
 network_indices = {}
 for network, labels in network_labels.items():
     indices = np.where(np.isin(avg_data, labels))[0]
@@ -136,9 +138,11 @@ print('Network indices computed.')
 
 # Step 4: Average each network time course, correlate it with every pMTG vertex,
 # and then average Fisher-z transformed FC values within each pMTG hemisphere.
+
+# First, load the motion summary file to identify subjects with sufficient usable resting-state data (>= 600 good frames = 8 minutes).
 motion = pd.read_csv(motion_path)
 eligible_subjects = motion.loc[motion['good_frames'] >= 600, 'src_subject_id'].tolist()
-print('Number of eligible subjects:', len(eligible_subjects))
+print('Number of eligible subjects:', len(eligible_subjects)) # subjects later also excluded if not recommended for inclusion by ABCD
 results = []
 
 for subject_path in subject_dirs:
@@ -161,7 +165,7 @@ for subject_path in subject_dirs:
     dt_path = os.path.join(smoothed_dir, dt_files[0])
 
     try:
-        # Load the subject's time-by-vertex CIFTI matrix.
+        # Load the subject's dtseries file and extract the time courses for the pMTG vertices and each network
         dt = nib.load(dt_path).get_fdata() 
 
         subject_result = {'subject_id': subject_id}
@@ -189,7 +193,6 @@ for subject_path in subject_dirs:
             subject_result[f'{network}_L_fz'] = np.mean(left_network_fcs)
             subject_result[f'{network}_R_fz'] = np.mean(right_network_fcs)
         results.append(subject_result)
-        # break # remove to process all subjects
 
     except Exception as e:
         print(f"Error processing subject {subject_id}: {e}")
