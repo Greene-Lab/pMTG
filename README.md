@@ -8,9 +8,9 @@ This repository contains the analysis code for characterizing posterior middle t
 2. `calculating_fc.py` calculates Fisher-z-transformed connectivity between left and right pMTG regions and large-scale functional networks.
 3. `data_wrangling.ipynb` merges functional connectivity, demographic, behavioral, imaging-quality, and motion data; applies the sample-selection criteria; and prepares the analysis table.
 4. `PCA_tasks.ipynb` performs exploratory factor analysis of the cognitive measures and repeats the analysis after controlling for income-to-needs ratio (INR).
-5. `PCA_FC.ipynb` performs principal component analysis of pMTG connectivity, exports PCA scores for visualization, tests associations between connectivity and the cognitive factors, and tests direct associations between connectivity and INR.
-6. `clustering.ipynb` identifies pMTG connectivity subtypes using Infomap, Louvain, and K-Means. It also evaluates repeated-run agreement and bootstrap stability and visualizes two- and four-cluster solutions in the previously estimated PCA space.
-7. `brain_behavior_without_inr_residualization.ipynb` and `brain_behavior_with_inr_residualization.ipynb` run matched brain–behavior and subtype analyses without and with INR residualization. The no-INR analysis also tests mediation by pMTG connectivity.
+5. `PCA_FC.ipynb` performs principal component analysis of pMTG connectivity and exports PCA scores for visualization.
+6. `clustering.ipynb` identifies pMTG connectivity subtypes using Infomap, Louvain, and K-Means. It also evaluates repeated-run agreement and bootstrap stability.
+7. `brain_behavior_without_inr_residualization.ipynb` and `brain_behavior_with_inr_residualization.ipynb` run matched brain–behavior and subtype analyses without and with INR residualization. The no-INR analysis also tests direct FC–INR associations and mediation by pMTG connectivity.
 8. `figures.ipynb` produces downstream subtype figures.
 
 ## Covariate Models
